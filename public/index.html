@@ -31,7 +31,9 @@
   </div>
 
   <!-- Añadir SweetAlert2 JS -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("loginForm");
   const email = document.getElementById("email");
@@ -56,6 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error("Por favor completa todos los campos");
         }
 
+        console.log('🔄 Enviando login...');
+
         // Enviar credenciales al servidor
         const response = await fetch("/api/user/login", {
           method: "POST",
@@ -68,7 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
           })
         });
 
+        console.log('📡 Status:', response.status);
         const data = await response.json();
+        console.log('📄 Data:', data);
 
         if (!response.ok) {
           const errorMsg = data.msg || "Credenciales incorrectas";
@@ -77,7 +83,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ✅ GUARDAR TOKEN EN LOCALSTORAGE
         if (data.token) {
-          localStorage.setItem('token', data.token);
+          const cleanToken = data.token.toString().trim();
+          localStorage.setItem('token', cleanToken);
+          console.log('💾 Token guardado:', localStorage.getItem('token'));
+        } else {
+          console.error('❌ No token en respuesta');
+          throw new Error('No se recibió token');
         }
 
         Swal.fire({
@@ -87,12 +98,14 @@ document.addEventListener("DOMContentLoaded", () => {
           timer: 2000,
           showConfirmButton: false,
           willClose: () => {
+            console.log('🎯 Redirigiendo a dashboard...');
             window.location.href = "/dashboard";
           }
         });
 
       } catch (error) {
         Swal.close();
+        console.error('❌ Error login:', error);
 
         let errorMessage = "Error al iniciar sesión";
 
@@ -149,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
- 
 </script>
 
 </body>

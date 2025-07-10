@@ -156,7 +156,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    console.log('Intento de login con:', { email }); // Log para depuración
+    console.log('Intento de login con:', { email });
 
     if (!email || !password) {
       console.log('Faltan credenciales');
@@ -188,6 +188,7 @@ export const login = async (req, res) => {
     const token = await generarJWT(user._id);
     console.log('Token generado para:', user.email);
 
+    // ✅ COOKIE (para compatibilidad)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -196,9 +197,11 @@ export const login = async (req, res) => {
       path: '/'
     });
 
+    // ✅ DEVOLVER TOKEN EN RESPUESTA (para localStorage)
     res.status(200).json({
       success: true,
       message: 'Login exitoso',
+      token: token, // ← ESTO ES NUEVO
       user: {
         _id: user._id,
         name: user.name,

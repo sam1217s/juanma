@@ -135,72 +135,113 @@
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+  
+  // ✅ VERIFICAR SI HAY TOKEN
+  const token = localStorage.getItem('token');
+  if (!token) {
+    // Si no hay token, redirigir al login
+    window.location.href = '/';
+    return;
+  }
+
   try {
     const res = await fetch('/api/user/dashboard', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
 
     if (res.status === 401) {
-      window.location.href = '/login';
+      // Token inválido o expirado
+      localStorage.removeItem('token');
+      window.location.href = '/';
       return;
     }
 
+    if (!res.ok) {
+      throw new Error('Error al cargar dashboard');
+    }
+
     const { data } = await res.json();
-   console.log(data);
+    console.log('Dashboard data:', data);
    
+    // ✅ ACTUALIZAR UI CON DATOS DEL USUARIO
     document.getElementById('greeting').textContent = data.greeting;
     document.getElementById('user-name').textContent = data.user.fullName;
     document.getElementById('user-email').textContent = data.user.email;
 
   } catch (error) {
-    console.error('Error al cargar el dashboard', error);
-    alert('Error al cargar el dashboard');
+    console.error('Error al cargar el dashboard:', error);
+    
+    // Si hay error, limpiar token y redirigir
+    localStorage.removeItem('token');
+    
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al cargar el dashboard. Inicia sesión nuevamente.',
+      willClose: () => {
+        window.location.href = '/';
+      }
+    });
   }
 });
 
+// ✅ LOGOUT BUTTON
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  Swal.fire({
+    title: "Cerrando sesión...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
 
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      Swal.fire({
-        title: "Cerrando sesión...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
-      try {
-        const res = await fetch('http://localhost:4000/api/user/logout', {
-          method: 'POST',
-          credentials: 'include'
-        });
-
-        if (res.ok) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Sesión cerrada',
-            showConfirmButton: false,
-            timer: 1500
-          });
-
-          setTimeout(() => {
-            localStorage.removeItem('token');
-            window.location.href = 'index.html';
-          }, 1600);
-        } else {
-          const err = await res.json();
-          throw new Error(err.msg || 'Error al cerrar sesión');
-        }
-      } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cerrar sesión',
-          text: error.message || 'Inténtalo más tarde'
-        });
+  try {
+    const token = localStorage.getItem('token');
+    
+    // Llamar al logout del servidor
+    const res = await fetch('/api/user/logout', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
-  
+
+    // Limpiar localStorage independientemente del resultado
+    localStorage.removeItem('token');
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Sesión cerrada',
+      showConfirmButton: false,
+      timer: 1500
+    });
+
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1600);
+
+  } catch (error) {
+    console.error('Error en logout:', error);
+    
+    // Aunque falle, limpiar localStorage y redirigir
+    localStorage.removeItem('token');
+    
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sesión cerrada',
+      text: 'Se cerró la sesión localmente',
+      timer: 1500,
+      showConfirmButton: false
+    });
+    
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1600);
+  }
+});
 </script>
 
 

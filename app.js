@@ -23,7 +23,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   process.env.FRONTEND_URL,
   // Agrega aquí tu dominio de Render cuando lo tengas
-  // 'https://tu-app.onrender.com'
+ 'https://mi-app-login.onrender.com'
 ];
 
 app.use(cors({

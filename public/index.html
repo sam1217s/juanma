@@ -31,135 +31,125 @@
   </div>
 
   <!-- Añadir SweetAlert2 JS -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("loginForm");
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
 
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("loginForm");
-    const email = document.getElementById("email");
-    const password = document.getElementById("password");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    if (form) {
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        try {
-          // Mostrar loader
-          Swal.fire({
-            title: "Iniciando sesión...",
-            allowOutsideClick: false,
-            didOpen: () => {
-              Swal.showLoading();
-            }
-          });
-
-          // Validación básica en el cliente
-          if (!email.value.trim() || !password.value) {
-            throw new Error("Por favor completa todos los campos");
-          }
-
-          // Enviar credenciales al servidor
-          const response = await fetch("/api/user/login", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              email: email.value.trim(),
-              password: password.value
-            })
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            const errorMsg = data.msg || "Credenciales incorrectas";
-            throw new Error(errorMsg);
-          }
-
-          Swal.fire({
-            icon: "success",
-            title: "¡Bienvenido!",
-            text: data.message || "Inicio de sesión exitoso",
-            timer: 2000,
-            showConfirmButton: false,
-            willClose: () => {
-              window.location.href = data.redirectTo || "/dashboard.html";
-            }
-          });
-
-        } catch (error) {
-          Swal.close();
-
-          let errorMessage = "Error al iniciar sesión";
-
-          if (error.message.includes("Failed to fetch")) {
-            errorMessage = "No se pudo conectar al servidor. Verifica tu conexión.";
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: errorMessage,
-            confirmButtonText: "Entendido"
-          });
-
-          password.value = "";
-        }
-      });
-    }
-
-    // 👇 Esta parte ahora es segura
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async function () {
+      try {
+        // Mostrar loader
         Swal.fire({
-          title: "Cerrando sesión...",
+          title: "Iniciando sesión...",
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
           }
         });
 
-        try {
-          const res = await fetch('/api/user/logout', {
-            method: 'POST',
-            credentials: 'include'
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-
-            Swal.fire({
-              icon: 'success',
-              title: data.message || "Sesión cerrada correctamente",
-              showConfirmButton: false,
-              timer: 1500
-            });
-
-            setTimeout(() => {
-              window.location.href = '/index.html';
-            }, 1600);
-
-          } else {
-            const errorData = await res.json();
-            throw new Error(errorData.message || 'Error al cerrar sesión');
-          }
-
-        } catch (error) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Error inesperado al cerrar sesión'
-          });
+        // Validación básica en el cliente
+        if (!email.value.trim() || !password.value) {
+          throw new Error("Por favor completa todos los campos");
         }
-      });
-    }
 
-  });
+        // Enviar credenciales al servidor
+        const response = await fetch("/api/user/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: email.value.trim(),
+            password: password.value
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg = data.msg || "Credenciales incorrectas";
+          throw new Error(errorMsg);
+        }
+
+        // ✅ GUARDAR TOKEN EN LOCALSTORAGE
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Bienvenido!",
+          text: data.message || "Inicio de sesión exitoso",
+          timer: 2000,
+          showConfirmButton: false,
+          willClose: () => {
+            window.location.href = "/dashboard";
+          }
+        });
+
+      } catch (error) {
+        Swal.close();
+
+        let errorMessage = "Error al iniciar sesión";
+
+        if (error.message.includes("Failed to fetch")) {
+          errorMessage = "No se pudo conectar al servidor. Verifica tu conexión.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: errorMessage,
+          confirmButtonText: "Entendido"
+        });
+
+        password.value = "";
+      }
+    });
+  }
+
+  // Logout button (si existe en esta página)
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async function () {
+      try {
+        // Limpiar localStorage
+        localStorage.removeItem('token');
+        
+        // Llamar al logout del servidor
+        await fetch('/api/user/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          }
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: "Sesión cerrada correctamente",
+          showConfirmButton: false,
+          timer: 1500
+        });
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1600);
+
+      } catch (error) {
+        // Aunque falle el logout del servidor, limpiamos localStorage
+        localStorage.removeItem('token');
+        window.location.href = '/';
+      }
+    });
+  }
+});
+ 
 </script>
 
 </body>

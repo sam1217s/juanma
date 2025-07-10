@@ -23,12 +23,12 @@ export const generarJWT = (userId) => {
 };
 
 export const validarJWT = async (req, res, next) => {
+  // ✅ BUSCAR TOKEN EN COOKIE O HEADER
   const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
 
   if (!token) {
     if (req.accepts('html')) {
-      return res.redirect('/index.html?error=no_token');
-
+      return res.redirect('/?error=no_token');
     }
     return res.status(401).json({ success: false, msg: 'No token provided' });
   }
@@ -40,24 +40,24 @@ export const validarJWT = async (req, res, next) => {
     if (!user) {
       res.clearCookie('token');
       if (req.accepts('html')) {
-        return res.redirect('/login?error=user_not_found');
+        return res.redirect('/?error=user_not_found');
       }
       return res.status(401).json({ success: false, msg: 'User not found' });
     }
 
     req.user = user;
-    req.userId = user._id; // Añadido para compatibilidad
+    req.userId = user._id;
     next();
 
   } catch (error) {
     res.clearCookie('token');
     
     if (req.accepts('html')) {
-      let redirectUrl = '/login?error=invalid_token';
+      let redirectUrl = '/?error=invalid_token';
       if (error.name === 'TokenExpiredError') {
-        redirectUrl = '/login?error=token_expired';
+        redirectUrl = '/?error=token_expired';
       } else if (error.name === 'JsonWebTokenError') {
-        redirectUrl = '/login?error=malformed_token';
+        redirectUrl = '/?error=malformed_token';
       }
       return res.redirect(redirectUrl);
     }
